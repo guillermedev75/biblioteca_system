@@ -14,6 +14,7 @@ class Livro extends Model
         'autor_id',
         'editora_id',
         'ano',
+        'cover',
         'isbn'
     ];
 

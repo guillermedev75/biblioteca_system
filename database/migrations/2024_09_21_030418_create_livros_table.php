@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('editora_id');
             $table->integer('ano');
             $table->string('isbn')->unique();
+            $table->string('cover');
             $table->timestamps();
         
             // Foreign keys

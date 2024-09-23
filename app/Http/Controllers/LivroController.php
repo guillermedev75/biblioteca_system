@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Http;
 use App\Models\Livro;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -27,56 +28,103 @@ class LivroController extends Controller
                 'generos' => 'required|array',
                 'generos.*' => 'integer|exists:generos,id'
             ]);
+    
+            $isbn = $request->isbn;
+            $openLibraryUrl = "https://openlibrary.org/api/books?bibkeys=ISBN:$isbn&jscmd=data&format=json";
+            $response = Http::get($openLibraryUrl);
+    
+            if ($response->successful()) {
+                $bookData = $response->json();
+                $bookInfo = $bookData["ISBN:$isbn"] ?? null;
+    
+                if ($bookInfo) {
+                    $cover = $bookInfo['cover']['large'] ?? null;
+    
+                    if ($cover === null) {
+                        return response()->json(['error' => 'Capa não encontrada'], 404);
+                    }
 
-            $livro = Livro::create([
-                'titulo' => $request->titulo,
-                'autor_id' => $request->autor_id,
-                'editora_id' => $request->editora_id,
-                'ano' => $request->ano,
-                'isbn' => $request->isbn
-            ]);
-
-            $livro->generos()->attach($request->generos);
-
-            return response()->json($livro, 200);
+                    $livro = Livro::create([
+                        'titulo' => $request->titulo,
+                        'autor_id' => $request->autor_id,
+                        'editora_id' => $request->editora_id,
+                        'ano' => $request->ano,
+                        'cover' => $cover,
+                        'isbn' => $request->isbn,
+                    ]);
+    
+                    $livro->generos()->attach($request->generos);
+                    return response()->json($livro, 200);
+                } else {
+                    return response()->json(['error' => 'ISBN não encontrado'], 404);
+                }
+            } else {
+                return response()->json(['error' => 'Falha ao consultar o ISBN.'], 500);
+            }
+    
         } catch (ValidationException $e) {
             return response()->json($e->validator->errors(), 422);
         }
-    }
+    }    
 
     public function update(Request $request, $id)
-    {
-        try {
+{
+    try {
+        $livro = Livro::findOrFail($id);
+        
+        $request->validate([
+            'titulo' => 'required|string|max:50',
+            'autor_id' => 'required|integer|exists:autors,id',
+            'editora_id' => 'required|integer|exists:editoras,id',
+            'ano' => 'required|integer|digits:4',
+            'isbn' => 'required|string|max:17|unique:livros,isbn,' . $livro->id,
+            'generos' => 'required|array',
+            'generos.*' => 'integer|exists:generos,id'
+        ]);
 
-            $livro = Livro::findOrFail($id);
-            
-            $request->validate([
-                'titulo' => 'required|string|max:50',
-                'autor_id' => 'required|integer|exists:autors,id',
-                'editora_id' => 'required|integer|exists:editoras,id',
-                'ano' => 'required|integer|digits:4',
-                'isbn' => 'required|string|max:17|unique:livros,isbn,' . $livro->id,
-                'generos' => 'required|array',
-                'generos.*' => 'integer|exists:generos,id'
-            ]);
+        if ($livro->isbn !== $request->isbn) {
+            $isbn = $request->isbn;
+            $openLibraryUrl = "https://openlibrary.org/api/books?bibkeys=ISBN:$isbn&jscmd=data&format=json";
+            $response = Http::get($openLibraryUrl);
 
-            $livro->update([
-                'titulo' => $request->titulo,
-                'autor_id' => $request->autor_id,
-                'editora_id' => $request->editora_id,
-                'ano' => $request->ano,
-                'isbn' => $request->isbn
-            ]);
+            if ($response->successful()) {
+                $bookData = $response->json();
+                $bookInfo = $bookData["ISBN:$isbn"] ?? null;
 
-            $livro->generos()->sync($request->generos);
+                if ($bookInfo) {
+                    $cover = $bookInfo['cover']['large'] ?? null;
 
-            return response()->json($livro, 200);
-        } catch (ValidationException $e) {
-            return response()->json($e->validator->errors(), 422);
-        } catch (ModelNotFoundException) {
-            return response()->json(['message' => 'Livro não encontrado'], 404);
+                    if ($cover === null) {
+                        return response()->json(['error' => 'Capa não encontrada'], 404);
+                    }
+                } else {
+                    return response()->json(['error' => 'ISBN não encontrado'], 404);
+                }
+            } else {
+                return response()->json(['error' => 'Falha ao consultar o ISBN.'], 500);
+            }
+        } else {
+            $cover = $livro->cover;
         }
+
+        $livro->update([
+            'titulo' => $request->titulo,
+            'autor_id' => $request->autor_id,
+            'editora_id' => $request->editora_id,
+            'ano' => $request->ano,
+            'isbn' => $request->isbn,
+            'cover' => $cover
+        ]);
+
+        $livro->generos()->sync($request->generos);
+
+        return response()->json($livro, 200);
+    } catch (ValidationException $e) {
+        return response()->json($e->validator->errors(), 422);
+    } catch (ModelNotFoundException) {
+        return response()->json(['message' => 'Livro não encontrado'], 404);
     }
+}
 
     public function destroy($id)
     {
