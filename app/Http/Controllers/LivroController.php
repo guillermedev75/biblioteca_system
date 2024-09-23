@@ -12,7 +12,7 @@ class LivroController extends Controller
 {
     public function index()
     {
-        $livros = Livro::with('generos')->get();
+        $livros = Livro::with(['generos', 'autor','editora'])->get();
         return response()->json($livros, 200);
     }
 
@@ -36,30 +36,22 @@ class LivroController extends Controller
             if ($response->successful()) {
                 $bookData = $response->json();
                 $bookInfo = $bookData["ISBN:$isbn"] ?? null;
-    
-                if ($bookInfo) {
-                    $cover = $bookInfo['cover']['large'] ?? null;
-    
-                    if ($cover === null) {
-                        return response()->json(['error' => 'Capa não encontrada'], 404);
-                    }
 
-                    $livro = Livro::create([
-                        'titulo' => $request->titulo,
-                        'autor_id' => $request->autor_id,
-                        'editora_id' => $request->editora_id,
-                        'ano' => $request->ano,
-                        'cover' => $cover,
-                        'isbn' => $request->isbn,
-                    ]);
-    
-                    $livro->generos()->attach($request->generos);
-                    return response()->json($livro, 200);
-                } else {
-                    return response()->json(['error' => 'ISBN não encontrado'], 404);
-                }
+                $cover = $bookInfo['cover']['large'] ?? 'https://i.pinimg.com/564x/88/c2/21/88c221f5748e7f862c444f817513d782.jpg';
+
+                $livro = Livro::create([
+                    'titulo' => $request->titulo,
+                    'autor_id' => $request->autor_id,
+                    'editora_id' => $request->editora_id,
+                    'ano' => $request->ano,
+                    'cover' => $cover,
+                    'isbn' => $request->isbn,
+                ]);
+
+                $livro->generos()->attach($request->generos);
+                return response()->json($livro, 200);
             } else {
-                return response()->json(['error' => 'Falha ao consultar o ISBN.'], 500);
+                return response()->json(['error' => 'ISBN não encontrado'], 404);
             }
     
         } catch (ValidationException $e) {

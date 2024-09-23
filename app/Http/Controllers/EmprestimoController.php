@@ -69,6 +69,42 @@ class EmprestimoController extends Controller
         }
     }
 
+    public function restore(Request $request,$id)
+    {
+        try {
+            $emprestimo = Emprestimo::findOrFail($id);
+            $request->validate([
+                'data_devolucao' => 'required|date'
+            ]);
+
+            $emprestimo->update([
+                'data_devolucao' => $request->data_devolucao
+            ]);
+
+            return response()->json($emprestimo, 200);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Emprestimo não encontrado'], 404);
+        }
+    }
+
+    public function postergar(Request $request,$id)
+    {
+        try {
+            $emprestimo = Emprestimo::findOrFail($id);
+            $request->validate([
+                'data_limite' => 'required|date'
+            ]);
+
+            $emprestimo->update([
+                'data_limite' => $request->data_limite
+            ]);
+
+            return response()->json($emprestimo, 200);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Emprestimo não encontrado'], 404);
+        }
+    }
+
     public function destroy($id)
     {
         try {

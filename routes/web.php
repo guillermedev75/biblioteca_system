@@ -63,4 +63,6 @@ Route::delete('/clientes/{id}',[ClienteController::class, 'destroy']);
 Route::get('/emprestimos', [EmprestimoController::class, 'index']);
 Route::post('/emprestimos', [EmprestimoController::class, 'store']);
 Route::put('/emprestimos/{id}', [EmprestimoController::class, 'update']);
+Route::put('/emprestimos/devolucao/{id}', [EmprestimoController::class, 'restore']);
+Route::put('/emprestimos/postergar/{id}', [EmprestimoController::class, 'postergar']);
 Route::delete('/emprestimos/{id}', [EmprestimoController::class, 'destroy']);

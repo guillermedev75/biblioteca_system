@@ -11,15 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('emprestimos', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('cliente_id');
-            $table->unsignedBigInteger('estoque_id');
-            $table->date('data_emprestimo');
-            $table->date('data_devolucao')->nullable()->change();
-            $table->date('data_limite');
-            $table->timestamps();
-
+        // Foreign keys
+        Schema::table('emprestimos', function (Blueprint $table) {
             $table->foreign('estoque_id')->references('id')->on('estoques')->onDelete('cascade');
             $table->foreign('cliente_id')->references('id')->on('clientes')->onDelete('cascade');
         });
